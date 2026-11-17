@@ -126,15 +126,20 @@ async function main() {
 
   const workspace = await org.verifyWorkspace(client, options.workspaceId);
   console.log(`  Workspace       ${workspace.name}`);
-  const cmdtInfo = await org.verifyCmdt(client);
-  console.log(`  Metadata type   ${cmdtInfo.type} present`);
+  // The type is only required when this run will write records into this org.
+  // Uploading images to an org that lacks it - to obtain that org's content
+  // keys and emit the records as files for a pipeline - is a supported flow.
+  const cmdtInfo = await org.verifyCmdt(client, { required: options.confirmDeploy });
+  console.log(`  Metadata type   ${cmdtInfo.present ? `${cmdtInfo.type} present` : `${cmdtInfo.type} ABSENT (records will not be written here)`}`);
 
   const existing = await org.findExistingSwatches(client, options.workspaceId);
   console.log(`  Existing swatch content: ${existing.size}`);
   const adoptable = await org.findByExternalIds(client, options.workspaceId, rows.map((r) => r.externalId));
   console.log(`  Content from earlier runs: ${adoptable.size}`);
-  const liveCmdt = await org.readCmdtRows(client);
-  console.log(`  Existing metadata rows:  ${liveCmdt.size}`);
+  // Querying a type that does not exist is an error, so an absent type means
+  // there are no existing rows by definition.
+  const liveCmdt = cmdtInfo.present ? await org.readCmdtRows(client) : new Map();
+  console.log(`  Existing metadata rows:  ${cmdtInfo.present ? liveCmdt.size : 'n/a'}`);
 
   // Three outcomes per colour, in order of preference:
   //
@@ -437,6 +442,21 @@ async function main() {
   heading('Custom metadata');
   console.log(`  ${records.length} colour(s) with a content key`);
   console.log(`  ${unchanged.length} already correct, ${needWrite.length} to write`);
+
+  // Emitting the files is independent of deploying them. The whole set is
+  // written, not just what this org still needs, because the output is meant
+  // to be committed and promoted as the complete mapping for this org's keys.
+  if (options.metadataOut) {
+    if (options.dryRun) {
+      console.log('  Skipped --metadata-out: a dry run has no content keys to write.');
+    } else if (records.length === 0) {
+      console.log('  Skipped --metadata-out: no colour has a content key.');
+    } else {
+      const staged = cmdt.stageDeployment(records, { outDir: options.metadataOut });
+      console.log(`  Wrote ${staged.fullNames.length} record file(s) to ${staged.sourceDir}`);
+      console.log('  Not deployed from here. Commit these and promote them through your pipeline.');
+    }
+  }
 
   let verifyResult = null;
 

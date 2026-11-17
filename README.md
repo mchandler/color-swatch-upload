@@ -77,6 +77,7 @@ the image downloads once.
 --target-org <alias>       Org alias as known to the sf CLI
 --file <path>              Input CSV
 --confirm-deploy           Required to write custom metadata
+--metadata-out <dir>       Write the record files to <dir> without deploying
 --dry-run                  Download and report only; writes nothing
 --folder <id>              Folder within the workspace for new content
 --cleanup-test-upload      Retire the legacy "Acorn (Test Swatch Upload)" content
@@ -115,6 +116,44 @@ The `swatch-` prefix is load-bearing. It is what lets the tool find existing
 swatches on a re-run with `UrlName LIKE 'swatch-%'`; a bare colour name also
 matches product imagery such as "Acorn Aerosol Spray Paint", so without the
 prefix there is no query that selects swatches and nothing else.
+
+## Getting the records into version control
+
+Content Keys are org-specific, so an org's rows can only be generated from that
+org's own CMS content. `--metadata-out` separates generating the records from
+deploying them, which is what makes a pipeline workflow possible:
+
+```
+node upload-swatches.js --workspace-id <that org's workspace> --target-org <alias> \
+                        --file ./color_swatch_list.csv --metadata-out ./cmdt-out
+```
+
+That uploads and publishes the images, then writes one `.md-meta.xml` per colour
+to `./cmdt-out/force-app/main/default/customMetadata/` in SFDX source layout,
+ready to copy into a repo. Nothing is deployed. `package.xml` is written at the
+output root rather than among the records, so copying the `customMetadata`
+folder into a repo brings only the records.
+
+The whole mapping is written, not just the rows that org still needs, because
+the output is meant to be committed as the complete set for those keys.
+
+The custom metadata type does **not** need to exist in the target org for this.
+It is required only with `--confirm-deploy`, since that is the only mode that
+writes records into the org being targeted. This is deliberate: uploading images
+to an org that has no type yet is the only way to obtain that org's Content
+Keys, and refusing would make the pipeline workflow impossible.
+
+A worked sequence, promoting production keys through a pipeline:
+
+1. Run against production with `--metadata-out` and no `--confirm-deploy`.
+   Production gets its images; you get production-keyed record files.
+2. Commit those files and promote them, so production eventually receives rows
+   that hold its own keys.
+3. Run against each lower org with `--confirm-deploy` as the change promotes, so
+   every sandbox overwrites those rows with its own keys.
+
+Step 2 means lower orgs temporarily hold another org's keys, which resolve to
+nothing there. Step 3 is what repairs that, and it has to run per org.
 
 ## Re-running
 

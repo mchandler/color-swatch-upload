@@ -40,7 +40,9 @@ test('staging writes one file per record plus a project and package manifest', (
   ]);
   try {
     assert.ok(fs.existsSync(path.join(staged.root, 'sfdx-project.json')));
-    assert.ok(fs.existsSync(path.join(staged.sourceDir, 'package.xml')));
+    // At the root, deliberately: not among the record files.
+    assert.ok(fs.existsSync(path.join(staged.root, 'package.xml')));
+    assert.ok(!fs.existsSync(path.join(staged.sourceDir, 'package.xml')));
     assert.ok(fs.existsSync(path.join(staged.sourceDir, 'ECOM_Color_Swatch.Swatch_Acorn.md-meta.xml')));
     assert.deepEqual(staged.fullNames, ['ECOM_Color_Swatch.Swatch_Acorn', 'ECOM_Color_Swatch.Swatch_Pine']);
   } finally {

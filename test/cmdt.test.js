@@ -133,3 +133,13 @@ test('report notes accumulate rather than overwrite', () => {
   assert.match(body, /already published in this workspace; delete not performed \(HTTP 405\); and another/);
   assert.match(body, /unchanged/);
 });
+
+// A deploy against ecommpilot failed with `The xsi:type "xsd:string" for
+// Custom Metadata field "Color__c" cannot be resolved` because only the xsi
+// namespace was declared. Both are required.
+test('record xml declares both the xsi and xsd namespaces', () => {
+  const xml = buildRecordXml({ label: 'Acorn', colour: 'Acorn', contentKey: 'MCAAAAAAAAAAAAAAAAAAAAAAAAAA' });
+  assert.match(xml, /xmlns:xsi="http:\/\/www\.w3\.org\/2001\/XMLSchema-instance"/);
+  assert.match(xml, /xmlns:xsd="http:\/\/www\.w3\.org\/2001\/XMLSchema"/);
+  assert.match(xml, /xsi:type="xsd:string"/);
+});

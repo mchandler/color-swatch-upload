@@ -1,0 +1,15 @@
+{
+  "name": "color-swatch-upload",
+  "version": "0.1.0",
+  "description": "Uploads colour swatch images into a Salesforce CMS workspace and records each one's ContentKey in the ECOM_Color_Swatch__mdt custom metadata type.",
+  "main": "upload-swatches.js",
+  "scripts": {
+    "start": "node upload-swatches.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

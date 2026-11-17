@@ -1,0 +1,10 @@
+node_modules/
+*.csv
+swatches-*.csv
+errors-*.csv
+.image-cache/
+.DS_Store
+npm-debug.log*
+
+# Local tooling and editor directories at repo root
+/.*/
